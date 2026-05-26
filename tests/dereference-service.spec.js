@@ -58,15 +58,17 @@ function interceptMockDid() {
 }
 
 describe('Service endpoint dereferencing — ?service= param', () => {
-  it('returns the service endpoint URL as JSON by default', async () => {
-    interceptMockDid();
-    const didUrl = encodeURIComponent(`${MOCK_DID_WEB}?service=files`);
-    const res = await fetch(`${baseUrl}/1.0/identifiers/${didUrl}`);
-    assert.equal(res.status, 200);
-    const body = await res.json();
-    assert.equal(body.serviceEndpoint, SERVICE_ENDPOINT,
-      'serviceEndpoint URL returned');
-  });
+  it('returns the service endpoint URL as text/uri-list by default',
+    async () => {
+      interceptMockDid();
+      const didUrl = encodeURIComponent(`${MOCK_DID_WEB}?service=files`);
+      const res = await fetch(`${baseUrl}/1.0/identifiers/${didUrl}`);
+      assert.equal(res.status, 200);
+      assert.ok(res.headers.get('content-type').includes('text/uri-list'),
+        'Content-Type is text/uri-list');
+      const body = await res.text();
+      assert.equal(body, SERVICE_ENDPOINT, 'body is the endpoint URL');
+    });
 
   it('redirects with HTTP 303 when Accept is text/uri-list', async () => {
     interceptMockDid();

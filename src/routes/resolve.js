@@ -1,7 +1,11 @@
 /*!
  * Copyright (c) 2024 Digital Bazaar, Inc.
  */
-import {CONTENT_TYPES, getResponseContentType} from '../http/headers.js';
+import {
+  CONTENT_TYPES,
+  getResponseContentType,
+  UNSUPPORTED_ACCEPT
+} from '../http/headers.js';
 import {errorToStatus} from '../http/errors.js';
 import {resolver} from '../resolver.js';
 
@@ -31,6 +35,14 @@ export async function resolveHandler(req, res) {
   const _options = req.method === 'POST' ?
     (req.body ?? {}) :
     req.query;
+
+  // 406 if the client named a type we cannot produce.
+  if(contentType === UNSUPPORTED_ACCEPT) {
+    return res.status(406).json({
+      error: 'representationNotSupported',
+      message: `Accept type not supported: ${accept}`
+    });
+  }
 
   const resolutionMetadata = {};
   const documentMetadata = {};

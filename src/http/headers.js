@@ -9,29 +9,45 @@ export const CONTENT_TYPES = {
   URI_LIST: 'text/uri-list'
 };
 
+// Sentinel returned when the Accept header names a type we cannot produce.
+// Routes check for this value and respond 406.
+export const UNSUPPORTED_ACCEPT = Symbol('unsupported-accept');
+
+// Supported media types per mode, in preference order.
+const RESOLUTION_TYPES = [
+  CONTENT_TYPES.RESOLUTION,
+  CONTENT_TYPES.DID_DOCUMENT
+];
+
+const DEREFERENCING_TYPES = [
+  CONTENT_TYPES.DEREFERENCING,
+  CONTENT_TYPES.URI_LIST,
+  CONTENT_TYPES.RESOLUTION,
+  CONTENT_TYPES.DID_DOCUMENT
+];
+
 /**
  * Determines the response content type based on the Accept header.
  *
+ * Returns UNSUPPORTED_ACCEPT if the client named a specific type we cannot
+ * produce. A missing or wildcard (*\/*) Accept header defaults to
+ * application/did+ld+json.
+ *
  * @param {string} accept - The Accept header value from the request.
  * @param {'resolution'|'dereferencing'} mode - The operation mode.
- * @returns {string} The content type to use in the response.
+ * @returns {string|symbol} A content type string or UNSUPPORTED_ACCEPT.
  */
 export function getResponseContentType(accept = '', mode = 'resolution') {
-  if(accept.includes(CONTENT_TYPES.RESOLUTION)) {
-    return CONTENT_TYPES.RESOLUTION;
-  }
-  if(accept.includes(CONTENT_TYPES.DEREFERENCING)) {
-    return CONTENT_TYPES.DEREFERENCING;
-  }
-  if(accept.includes(CONTENT_TYPES.URI_LIST)) {
-    return CONTENT_TYPES.URI_LIST;
-  }
-  if(accept.includes(CONTENT_TYPES.DID_DOCUMENT)) {
+  // No preference — use the mode default.
+  if(!accept || accept === '*/*' || accept.includes('*/*')) {
     return CONTENT_TYPES.DID_DOCUMENT;
   }
-  // Default based on mode
-  if(mode === 'dereferencing') {
-    return CONTENT_TYPES.DID_DOCUMENT;
-  }
-  return CONTENT_TYPES.DID_DOCUMENT;
+
+  const supported = mode === 'dereferencing' ?
+    DEREFERENCING_TYPES :
+    RESOLUTION_TYPES;
+
+  // Return the first supported type the client will accept.
+  const match = supported.find(type => accept.includes(type));
+  return match ?? UNSUPPORTED_ACCEPT;
 }
