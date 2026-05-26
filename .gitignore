@@ -1,5 +1,7 @@
 SPEC.md
 ARCHITECTURE.md
+CLAUDE.md
+SMELLS*.md
 .env
 node_modules/
 dist/
