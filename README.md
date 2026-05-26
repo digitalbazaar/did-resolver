@@ -16,7 +16,7 @@ object that describes the entity: its public keys, authentication methods, and s
 endpoints.
 
 This server exposes a single HTTP endpoint that accepts a DID (or DID URL), resolves
-it to a DID Document using [`did-io`](https://github.com/digitalbazaar/did-io), and
+it to a DID Document using [`@digitalbazaar/did-io`](https://github.com/digitalbazaar/did-io), and
 returns the result in the format the client requests.
 
 ```
@@ -58,7 +58,8 @@ GET /1.0/identifiers/{did-url}
 
 A DID URL extends a DID with a path, query, or fragment:
 - `did:key:z6Mk...#key-1` → returns a specific verification method
-- `did:web:example.com/user/alice?service=files` → follows the service endpoint
+- `did:web:example.com?service=files` → HTTP 303 redirect to the service endpoint URL
+- `did:web:example.com?service=files&relativeRef=/path` → redirect with path appended
 
 **Response formats** (controlled by `Accept` header):
 
@@ -110,8 +111,8 @@ src/
     └── headers.js    # Content-Type helpers
 ```
 
-The server is built on Node.js with no framework dependencies beyond what's needed for
-routing. It uses the DB-standard ESM module format throughout.
+The server uses [Express](https://expressjs.com/) for routing and the DB-standard
+ESM module format throughout.
 
 **Resolution flow:**
 
@@ -135,14 +136,18 @@ npm install
 node src/index.js
 
 # Resolve a DID
-curl https://localhost:8080/1.0/identifiers/did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK
+curl http://localhost:8080/1.0/identifiers/did:key:z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH
 
 # Get full resolution result
 curl -H "Accept: application/did-resolution" \
-  https://localhost:8080/1.0/identifiers/did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK
+  http://localhost:8080/1.0/identifiers/did:key:z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH
 
-# Dereference a DID URL (specific verification method)
-curl https://localhost:8080/1.0/identifiers/did:key:z6Mk...%23key-1
+# Dereference a DID URL fragment (specific verification method)
+curl http://localhost:8080/1.0/identifiers/did:key:z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH%23z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH
+
+# Dereference a service endpoint (HTTP 303 redirect)
+curl -L -H "Accept: text/uri-list" \
+  http://localhost:8080/1.0/identifiers/did:web:example.com%3Fservice%3Dfiles
 ```
 
 ## Configuration
@@ -161,13 +166,24 @@ curl https://localhost:8080/1.0/identifiers/did:key:z6Mk...%23key-1
 
 2. Create `src/drivers/example.js`:
    ```js
-   import * as ExampleDriver from '@digitalbazaar/did-method-example';
-   export const driver = ExampleDriver.driver();
+   import {driver} from '@digitalbazaar/did-method-example';
+
+   export const exampleDriver = driver();
+   ```
+   If the method uses multikey cryptography, also register the key suite:
+   ```js
+   import {Ed25519VerificationKey2020} from
+     '@digitalbazaar/ed25519-verification-key-2020';
+
+   exampleDriver.use({
+     multibaseMultikeyHeader: 'z6Mk',
+     fromMultibase: Ed25519VerificationKey2020.from
+   });
    ```
 
 3. Register it in `src/resolver.js`:
    ```js
-   import {driver as exampleDriver} from './drivers/example.js';
+   import {exampleDriver} from './drivers/example.js';
    resolver.use(exampleDriver);
    ```
 
@@ -184,7 +200,7 @@ npm run lint   # Lint with @digitalbazaar/eslint-config
 
 - [W3C DID Resolution](https://w3c.github.io/did-resolution/)
 - [HTTPS Binding](https://w3c.github.io/did-resolution/#bindings-https)
-- [did-io](https://github.com/digitalbazaar/did-io)
+- [@digitalbazaar/did-io](https://github.com/digitalbazaar/did-io)
 - [Danube Tech Universal Resolver](https://github.com/decentralized-identity/universal-resolver) (reference implementation)
 
 ## License
