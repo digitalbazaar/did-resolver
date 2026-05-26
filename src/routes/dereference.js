@@ -1,12 +1,12 @@
 /*!
  * Copyright (c) 2024 Digital Bazaar, Inc.
  */
+import {classifyError, errorToStatus} from '../http/errors.js';
 import {
   CONTENT_TYPES,
   getResponseContentType,
   UNSUPPORTED_ACCEPT
 } from '../http/headers.js';
-import {errorToStatus} from '../http/errors.js';
 import {resolver} from '../resolver.js';
 
 /**
@@ -25,7 +25,15 @@ import {resolver} from '../resolver.js';
  * @param {object} res - Express response.
  */
 export async function dereferenceHandler(req, res) {
-  const didUrl = decodeURIComponent(req.params[0]);
+  let didUrl;
+  try {
+    didUrl = decodeURIComponent(req.params[0]);
+  } catch {
+    return res.status(400).json({
+      error: 'invalidDidUrl',
+      message: 'Malformed percent-encoding in DID URL.'
+    });
+  }
   const accept = req.headers.accept ?? '';
   const contentType = getResponseContentType(accept, 'dereferencing');
 
@@ -99,13 +107,42 @@ async function _dereferenceService(
     });
   }
 
-  // Build the final endpoint URL. If ?relativeRef= is present, append it.
-  let endpointUrl = Array.isArray(service.serviceEndpoint) ?
+  // Extract a string URL from the endpoint — spec allows string, array, or
+  // object map forms. We use the first resolvable string value.
+  const rawEndpoint = Array.isArray(service.serviceEndpoint) ?
     service.serviceEndpoint[0] :
     service.serviceEndpoint;
+  const endpointStr = typeof rawEndpoint === 'string' ?
+    rawEndpoint :
+    rawEndpoint?.uri ?? rawEndpoint?.id ?? null;
 
-  if(relativeRef) {
-    endpointUrl = endpointUrl.replace(/\/$/, '') + relativeRef;
+  if(!endpointStr) {
+    return res.status(400).json({
+      error: 'invalidDidUrl',
+      message: 'Service endpoint is not a resolvable URL.'
+    });
+  }
+
+  // Build the final endpoint URL. relativeRef is a path suffix appended to
+  // the service endpoint per spec §B.1 — use the URL API to validate the
+  // result and handle query strings / fragments in the relativeRef correctly.
+  let endpointUrl;
+  try {
+    if(relativeRef) {
+      // Normalise: strip trailing slash from base, ensure relativeRef starts
+      // with '/', then validate by parsing as a URL.
+      const base = endpointStr.replace(/\/$/, '');
+      const suffix = relativeRef.startsWith('/') ?
+        relativeRef : `/${relativeRef}`;
+      endpointUrl = new URL(base + suffix).href;
+    } else {
+      endpointUrl = new URL(endpointStr).href;
+    }
+  } catch {
+    return res.status(400).json({
+      error: 'invalidDidUrl',
+      message: 'Could not construct endpoint URL.'
+    });
   }
 
   // text/uri-list → HTTP 303 redirect per spec.
@@ -171,7 +208,7 @@ function _parseDIDUrl(didUrl) {
  * @param {string} options.contentType - The response content type.
  */
 function _sendError({res, e, contentType}) {
-  const errorType = _classifyError(e);
+  const errorType = classifyError(e, 'dereferencing');
   const status = errorToStatus(errorType);
 
   if(contentType === CONTENT_TYPES.DEREFERENCING) {
@@ -231,29 +268,3 @@ function _extractServiceUrl(content) {
   return null;
 }
 
-/**
- * Maps an error thrown by did-io/drivers to a DID resolution error type.
- *
- * @param {Error} e - The caught error.
- * @returns {string} A DID resolution error type string.
- */
-function _classifyError(e) {
-  const msg = e.message?.toLowerCase() ?? '';
-  if(msg.includes('driver') && msg.includes('not found')) {
-    return 'methodNotSupported';
-  }
-  if(msg.includes('fetch failed') || msg.includes('enotfound') ||
-    msg.includes('econnrefused') || e.status === 404) {
-    return 'notFound';
-  }
-  if(msg.includes('not found')) {
-    return 'notFound';
-  }
-  if(msg.includes('invalid') || msg.includes('parse')) {
-    return 'invalidDidUrl';
-  }
-  if(msg.includes('deactivated')) {
-    return 'deactivated';
-  }
-  return 'internalError';
-}

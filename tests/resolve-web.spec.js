@@ -104,9 +104,9 @@ describe('GET /1.0/identifiers/:did — did:web (mock via nock)', () => {
 });
 
 describe('GET /1.0/identifiers/:did — did:web (live)', function() {
-  // Live network tests: skip if SKIP_LIVE_TESTS env var is set.
+  // Live network tests are skipped by default. Set LIVE_TESTS=1 to enable.
   before(function() {
-    if(process.env.SKIP_LIVE_TESTS) {
+    if(!process.env.LIVE_TESTS) {
       this.skip();
     }
   });
