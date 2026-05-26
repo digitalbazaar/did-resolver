@@ -1,19 +1,20 @@
 /*!
  * Copyright (c) 2024 Digital Bazaar, Inc. All rights reserved.
  */
-import {resolver} from '../resolver.js';
-import {errorToStatus} from '../http/errors.js';
 import {CONTENT_TYPES, getResponseContentType} from '../http/headers.js';
+import {errorToStatus} from '../http/errors.js';
+import {resolver} from '../resolver.js';
 
 /**
- * Handles GET /1.0/identifiers/:didUrl (DID URL dereferencing)
+ * Handles GET /1.0/identifiers/:didUrl (DID URL dereferencing).
  *
  * A DID URL includes a path, query, or fragment, e.g.:
  *   did:key:z6Mk...#key-1
  *   did:web:example.com?service=files
  *
  * Returns either:
- * - A full dereferencing result when Accept is application/did-url-dereferencing
+ * - A full dereferencing result when Accept is
+ *   application/did-url-dereferencing
  * - HTTP 303 redirect when Accept is text/uri-list
  * - The dereferenced resource directly for all other Accept values
  *
@@ -25,9 +26,9 @@ export async function dereferenceHandler(req, res) {
   const accept = req.headers.accept ?? '';
   const contentType = getResponseContentType(accept, 'dereferencing');
 
+  const dereferencingMetadata = {};
+  const contentMetadata = {};
   let content;
-  let dereferencingMetadata = {};
-  let contentMetadata = {};
 
   try {
     // did-io resolves DID URLs via the url parameter
@@ -36,14 +37,12 @@ export async function dereferenceHandler(req, res) {
     const errorType = classifyError(e);
     const status = errorToStatus(errorType);
 
-    dereferencingMetadata = {error: errorType};
-
     if(contentType === CONTENT_TYPES.DEREFERENCING) {
       return res.status(status).type(contentType).json({
         '@context': 'https://w3id.org/did-resolution/v1',
-        dereferencingMetadata,
+        contentMetadata: {},
         contentStream: null,
-        contentMetadata: {}
+        dereferencingMetadata: {error: errorType}
       });
     }
     return res.status(status).json({error: errorType, message: e.message});
@@ -60,12 +59,12 @@ export async function dereferenceHandler(req, res) {
   if(contentType === CONTENT_TYPES.DEREFERENCING) {
     return res.status(200).type(contentType).json({
       '@context': 'https://w3id.org/did-resolution/v1',
+      contentMetadata,
+      contentStream: content,
       dereferencingMetadata: {
         contentType: CONTENT_TYPES.DID_DOCUMENT,
         ...dereferencingMetadata
-      },
-      contentStream: content,
-      contentMetadata
+      }
     });
   }
 
@@ -96,10 +95,14 @@ function extractServiceUrl(content) {
  */
 function classifyError(e) {
   const msg = e.message?.toLowerCase() ?? '';
-  if(msg.includes('not supported') || msg.includes('no driver')) {
+  if(msg.includes('driver') && msg.includes('not found')) {
     return 'methodNotSupported';
   }
-  if(msg.includes('not found') || msg.includes('404')) {
+  if(msg.includes('fetch failed') || msg.includes('enotfound') ||
+    msg.includes('econnrefused') || e.status === 404) {
+    return 'notFound';
+  }
+  if(msg.includes('not found')) {
     return 'notFound';
   }
   if(msg.includes('invalid') || msg.includes('parse')) {

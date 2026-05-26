@@ -1,12 +1,15 @@
 /*!
  * Copyright (c) 2024 Digital Bazaar, Inc. All rights reserved.
  */
-import {resolver} from '../resolver.js';
-import {errorToStatus} from '../http/errors.js';
 import {CONTENT_TYPES, getResponseContentType} from '../http/headers.js';
+import {errorToStatus} from '../http/errors.js';
+import {resolver} from '../resolver.js';
 
 /**
  * Handles GET and POST /1.0/identifiers/:did
+ *
+ * GET: resolution options from query parameters.
+ * POST: resolution options from JSON body.
  *
  * Returns either:
  * - A full DID resolution result (document + metadata) when Accept is
@@ -21,9 +24,17 @@ export async function resolveHandler(req, res) {
   const accept = req.headers.accept ?? '';
   const contentType = getResponseContentType(accept, 'resolution');
 
+  // POST body may carry resolution options; GET uses query params.
+  // Currently did-io does not pass options through to drivers,
+  // but we parse them here for future extensibility.
+  // eslint-disable-next-line no-unused-vars
+  const _options = req.method === 'POST' ?
+    (req.body ?? {}) :
+    req.query;
+
+  const resolutionMetadata = {};
+  const documentMetadata = {};
   let didDocument;
-  let resolutionMetadata = {};
-  let documentMetadata = {};
 
   try {
     didDocument = await resolver.get({did});
@@ -31,14 +42,12 @@ export async function resolveHandler(req, res) {
     const errorType = classifyError(e);
     const status = errorToStatus(errorType);
 
-    resolutionMetadata = {error: errorType};
-
     if(contentType === CONTENT_TYPES.RESOLUTION) {
       return res.status(status).type(contentType).json({
         '@context': 'https://w3id.org/did-resolution/v1',
         didDocument: null,
-        didResolutionMetadata: resolutionMetadata,
-        didDocumentMetadata: {}
+        didDocumentMetadata: {},
+        didResolutionMetadata: {error: errorType}
       });
     }
     return res.status(status).json({error: errorType, message: e.message});
@@ -48,11 +57,11 @@ export async function resolveHandler(req, res) {
     return res.status(200).type(contentType).json({
       '@context': 'https://w3id.org/did-resolution/v1',
       didDocument,
+      didDocumentMetadata: documentMetadata,
       didResolutionMetadata: {
         contentType: CONTENT_TYPES.DID_DOCUMENT,
         ...resolutionMetadata
-      },
-      didDocumentMetadata: documentMetadata
+      }
     });
   }
 
@@ -71,9 +80,9 @@ function classifyError(e) {
   if(msg.includes('driver') && msg.includes('not found')) {
     return 'methodNotSupported';
   }
-  // Network / fetch failures for did:web that doesn't exist
+  // Network failures for did:web that doesn't resolve
   if(msg.includes('fetch failed') || msg.includes('enotfound') ||
-      msg.includes('econnrefused') || e.status === 404) {
+    msg.includes('econnrefused') || e.status === 404) {
     return 'notFound';
   }
   if(msg.includes('not found')) {
