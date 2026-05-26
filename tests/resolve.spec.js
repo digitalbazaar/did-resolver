@@ -95,6 +95,29 @@ describe('GET /1.0/identifiers/:did — resolution', () => {
       assert.equal(body.didResolutionMetadata.error, 'methodNotSupported');
       assert.equal(body.didDocument, null);
     });
+
+  it('returns 406 for an unsupported Accept type', async () => {
+    const res = await fetch(
+      `${baseUrl}/1.0/identifiers/${TEST_DID_KEY}`,
+      {headers: {Accept: 'application/json'}});
+    assert.equal(res.status, 406);
+    const body = await res.json();
+    assert.equal(body.error, 'representationNotSupported');
+  });
+
+  it('returns 406 for text/html Accept type', async () => {
+    const res = await fetch(
+      `${baseUrl}/1.0/identifiers/${TEST_DID_KEY}`,
+      {headers: {Accept: 'text/html'}});
+    assert.equal(res.status, 406);
+  });
+
+  it('returns 200 for wildcard Accept */*', async () => {
+    const res = await fetch(
+      `${baseUrl}/1.0/identifiers/${TEST_DID_KEY}`,
+      {headers: {Accept: '*/*'}});
+    assert.equal(res.status, 200);
+  });
 });
 
 describe('POST /1.0/identifiers/:did — resolution with options', () => {
@@ -170,4 +193,15 @@ describe('GET /1.0/identifiers/:didUrl — dereferencing', () => {
     const res = await fetch(`${baseUrl}/1.0/identifiers/${encoded}`);
     assert.equal(res.status, 501);
   });
+
+  it('returns 406 for an unsupported Accept type on dereferencing',
+    async () => {
+      const encoded = encodeURIComponent(TEST_KEY_FRAGMENT);
+      const res = await fetch(`${baseUrl}/1.0/identifiers/${encoded}`, {
+        headers: {Accept: 'application/json'}
+      });
+      assert.equal(res.status, 406);
+      const body = await res.json();
+      assert.equal(body.error, 'representationNotSupported');
+    });
 });

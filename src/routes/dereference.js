@@ -1,7 +1,11 @@
 /*!
  * Copyright (c) 2024 Digital Bazaar, Inc.
  */
-import {CONTENT_TYPES, getResponseContentType} from '../http/headers.js';
+import {
+  CONTENT_TYPES,
+  getResponseContentType,
+  UNSUPPORTED_ACCEPT
+} from '../http/headers.js';
 import {errorToStatus} from '../http/errors.js';
 import {resolver} from '../resolver.js';
 
@@ -25,6 +29,14 @@ export async function dereferenceHandler(req, res) {
   const accept = req.headers.accept ?? '';
   const contentType = getResponseContentType(accept, 'dereferencing');
 
+  // 406 if the client named a type we cannot produce.
+  if(contentType === UNSUPPORTED_ACCEPT) {
+    return res.status(406).json({
+      error: 'representationNotSupported',
+      message: `Accept type not supported: ${accept}`
+    });
+  }
+
   // Parse the DID URL to extract the base DID and any query params.
   const {baseDid, serviceId, relativeRef} = _parseDIDUrl(didUrl);
 
@@ -33,7 +45,7 @@ export async function dereferenceHandler(req, res) {
   // do not implement this (marked FIXME in did-method-web source).
   if(serviceId) {
     return _dereferenceService(
-      {res, baseDid, serviceId, relativeRef, contentType, didUrl});
+      {res, baseDid, serviceId, relativeRef, contentType});
   }
 
   // For fragment / path DID URLs, delegate to the driver.
@@ -59,7 +71,7 @@ export async function dereferenceHandler(req, res) {
  * @param {string} options.didUrl - Original full DID URL (for metadata).
  */
 async function _dereferenceService(
-  {res, baseDid, serviceId, relativeRef, contentType, didUrl}) {
+  {res, baseDid, serviceId, relativeRef, contentType}) {
   let didDocument;
   try {
     didDocument = await resolver.get({did: baseDid});
@@ -114,8 +126,10 @@ async function _dereferenceService(
     });
   }
 
-  // Default → return the endpoint URL as plain JSON.
-  return res.status(200).json({serviceEndpoint: endpointUrl, didUrl});
+  // Default → return the endpoint URL as the resource directly (text/uri-list
+  // content, not a redirect). Per spec §dereferencing-algorithm, the default
+  // contentStream for a service endpoint is the URL itself.
+  return res.status(200).type(CONTENT_TYPES.URI_LIST).send(endpointUrl);
 }
 
 /**
