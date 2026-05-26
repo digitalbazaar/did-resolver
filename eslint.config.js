@@ -9,9 +9,10 @@ export default [
     languageOptions: {
       globals: {
         // Node.js globals
-        process: 'readonly',
+        URLSearchParams: 'readonly',
         console: 'readonly',
-        fetch: 'readonly'
+        fetch: 'readonly',
+        process: 'readonly'
       }
     },
     rules: {
