@@ -1,2 +1,7 @@
 SPEC.md
 ARCHITECTURE.md
+.env
+node_modules/
+dist/
+coverage/
+.fastembed_cache/
