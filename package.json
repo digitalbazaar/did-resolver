@@ -1,0 +1,25 @@
+{
+  "name": "@digitalbazaar/did-resolver",
+  "version": "1.0.0",
+  "description": "W3C-conformant DID Resolution HTTPS Binding server.",
+  "license": "BSD-3-Clause",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "mocha --timeout 10000 'tests/**/*.spec.js'",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@digitalbazaar/did-io": "^2.1.1",
+    "@digitalbazaar/did-method-key": "^5.3.0",
+    "@digitalbazaar/did-method-web": "^1.0.1",
+    "@digitalbazaar/ed25519-verification-key-2020": "^4.2.0",
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "@digitalbazaar/eslint-config": "^8.0.1",
+    "chai": "^5.1.0",
+    "mocha": "^10.4.0"
+  }
+}
