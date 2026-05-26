@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2024 Digital Bazaar, Inc. All rights reserved.
+ * Copyright (c) 2024 Digital Bazaar, Inc.
  */
 import {strict as assert} from 'node:assert';
 import {createServer} from '../src/server.js';

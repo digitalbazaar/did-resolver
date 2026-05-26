@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2024 Digital Bazaar, Inc. All rights reserved.
+ * Copyright (c) 2024 Digital Bazaar, Inc.
  */
 import {CachedResolver} from '@digitalbazaar/did-io';
 import {keyDriver} from './drivers/key.js';

@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2024 Digital Bazaar, Inc. All rights reserved.
+ * Copyright (c) 2024 Digital Bazaar, Inc.
  */
 import {CONTENT_TYPES, getResponseContentType} from '../http/headers.js';
 import {errorToStatus} from '../http/errors.js';
