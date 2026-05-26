@@ -38,7 +38,15 @@ export function createServer() {
  */
 async function dispatchHandler(req, res) {
   const raw = req.params[0] ?? '';
-  const decoded = decodeURIComponent(raw);
+  let decoded;
+  try {
+    decoded = decodeURIComponent(raw);
+  } catch {
+    return res.status(400).json({
+      error: 'invalidDid',
+      message: 'Malformed percent-encoding in identifier.'
+    });
+  }
 
   const isDIDUrl = decoded.includes('#') ||
     decoded.includes('?') ||

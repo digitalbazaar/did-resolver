@@ -1,12 +1,12 @@
 /*!
  * Copyright (c) 2024 Digital Bazaar, Inc.
  */
+import {classifyError, errorToStatus} from '../http/errors.js';
 import {
   CONTENT_TYPES,
   getResponseContentType,
   UNSUPPORTED_ACCEPT
 } from '../http/headers.js';
-import {errorToStatus} from '../http/errors.js';
 import {resolver} from '../resolver.js';
 
 /**
@@ -24,7 +24,15 @@ import {resolver} from '../resolver.js';
  * @param {object} res - Express response.
  */
 export async function resolveHandler(req, res) {
-  const did = decodeURIComponent(req.params[0]);
+  let did;
+  try {
+    did = decodeURIComponent(req.params[0]);
+  } catch {
+    return res.status(400).json({
+      error: 'invalidDid',
+      message: 'Malformed percent-encoding in DID.'
+    });
+  }
   const accept = req.headers.accept ?? '';
   const contentType = getResponseContentType(accept, 'resolution');
 
@@ -51,7 +59,7 @@ export async function resolveHandler(req, res) {
   try {
     didDocument = await resolver.get({did});
   } catch(e) {
-    const errorType = classifyError(e);
+    const errorType = classifyError(e, 'resolution');
     const status = errorToStatus(errorType);
 
     if(contentType === CONTENT_TYPES.RESOLUTION) {
@@ -80,31 +88,3 @@ export async function resolveHandler(req, res) {
   return res.status(200).type(CONTENT_TYPES.DID_DOCUMENT).json(didDocument);
 }
 
-/**
- * Maps an error thrown by did-io/drivers to a DID resolution error type.
- *
- * @param {Error} e - The caught error.
- * @returns {string} A DID resolution error type string.
- */
-function classifyError(e) {
-  const msg = e.message?.toLowerCase() ?? '';
-  // did-io: "Driver for DID did:foo:bar not found."
-  if(msg.includes('driver') && msg.includes('not found')) {
-    return 'methodNotSupported';
-  }
-  // Network failures for did:web that doesn't resolve
-  if(msg.includes('fetch failed') || msg.includes('enotfound') ||
-    msg.includes('econnrefused') || e.status === 404) {
-    return 'notFound';
-  }
-  if(msg.includes('not found')) {
-    return 'notFound';
-  }
-  if(msg.includes('invalid') || msg.includes('parse')) {
-    return 'invalidDid';
-  }
-  if(msg.includes('deactivated')) {
-    return 'deactivated';
-  }
-  return 'internalError';
-}

@@ -26,3 +26,34 @@ const ERROR_STATUS_MAP = new Map([
 export function errorToStatus(errorType) {
   return ERROR_STATUS_MAP.get(errorType) ?? 500;
 }
+
+/**
+ * Maps an error thrown by did-io/drivers to a DID resolution error type.
+ *
+ * @param {Error} e - The caught error.
+ * @param {'resolution'|'dereferencing'} [mode] - Operation mode; controls
+ *   whether invalid-input errors are reported as invalidDid or invalidDidUrl.
+ * @returns {string} A DID resolution error type string.
+ */
+export function classifyError(e, mode = 'resolution') {
+  const msg = e.message?.toLowerCase() ?? '';
+  // did-io: "Driver for DID did:foo:bar not found."
+  if(msg.includes('driver') && msg.includes('not found')) {
+    return 'methodNotSupported';
+  }
+  // Network failures for did:web that doesn't resolve
+  if(msg.includes('fetch failed') || msg.includes('enotfound') ||
+    msg.includes('econnrefused') || e.status === 404) {
+    return 'notFound';
+  }
+  if(msg.includes('not found')) {
+    return 'notFound';
+  }
+  if(msg.includes('invalid') || msg.includes('parse')) {
+    return mode === 'dereferencing' ? 'invalidDidUrl' : 'invalidDid';
+  }
+  if(msg.includes('deactivated')) {
+    return 'deactivated';
+  }
+  return 'internalError';
+}
