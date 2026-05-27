@@ -1,12 +1,12 @@
 {
   "name": "@digitalbazaar/did-resolver",
-  "version": "1.0.0",
+  "version": "0.0.1-0",
   "description": "W3C-conformant DID Resolution HTTPS Binding server.",
   "license": "BSD-3-Clause",
   "type": "module",
-  "main": "src/index.js",
+  "main": "lib/index.js",
   "scripts": {
-    "start": "node src/index.js",
+    "start": "node lib/index.js",
     "test": "mocha --timeout 10000 'tests/**/*.spec.js'",
     "lint": "eslint ."
   },

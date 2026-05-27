@@ -1,8 +1,8 @@
 /*!
- * Copyright (c) 2024 Digital Bazaar, Inc.
+ * Copyright (c) 2025 Digital Bazaar, Inc.
  */
 import {strict as assert} from 'node:assert';
-import {createServer} from '../src/server.js';
+import {createServer} from '../lib/server.js';
 import nock from 'nock';
 
 // did:web:identity.foundation is a real, stable, publicly resolvable DID
