@@ -96,7 +96,7 @@ Additional methods can be added by registering a driver with the `CachedResolver
 ### Architecture
 
 ```
-src/
+lib/
 ├── index.js          # Entry point — wires server + resolver
 ├── server.js         # HTTP server, route registration
 ├── resolver.js       # did-io CachedResolver instance
@@ -133,7 +133,7 @@ npm install
 
 ```bash
 # Start the server (default port 8080)
-node src/index.js
+node lib/index.js
 
 # Resolve a DID
 curl http://localhost:8080/1.0/identifiers/did:key:z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH
@@ -164,7 +164,7 @@ curl -L -H "Accept: text/uri-list" \
    npm install @digitalbazaar/did-method-example
    ```
 
-2. Create `src/drivers/example.js`:
+2. Create `lib/drivers/example.js`:
    ```js
    import {driver} from '@digitalbazaar/did-method-example';
 
@@ -181,7 +181,7 @@ curl -L -H "Accept: text/uri-list" \
    });
    ```
 
-3. Register it in `src/resolver.js`:
+3. Register it in `lib/resolver.js`:
    ```js
    import {exampleDriver} from './drivers/example.js';
    resolver.use(exampleDriver);

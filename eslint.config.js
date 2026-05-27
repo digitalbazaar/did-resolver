@@ -1,25 +1,10 @@
 /*!
- * Copyright (c) 2024 Digital Bazaar, Inc.
+ * Copyright (c) 2025 Digital Bazaar, Inc.
  */
-import baseConfig from '@digitalbazaar/eslint-config';
+import config from '@digitalbazaar/eslint-config/node-recommended';
 
 export default [
-  ...baseConfig,
-  {
-    languageOptions: {
-      globals: {
-        // Node.js globals
-        URL: 'readonly',
-        URLSearchParams: 'readonly',
-        console: 'readonly',
-        fetch: 'readonly',
-        process: 'readonly'
-      }
-    },
-    rules: {
-      'no-unused-vars': ['error', {argsIgnorePattern: '^_'}]
-    }
-  },
+  ...config,
   {
     // Mocha test globals
     files: ['tests/**/*.js'],
