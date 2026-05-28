@@ -230,9 +230,9 @@ npm run lint   # Lint with @digitalbazaar/eslint-config
 
 ## Spec Conformance
 
-This implementation targets the
-[w3c-ccg/did-resolution-mocha-test-suite](https://github.com/w3c-ccg/did-resolution-mocha-test-suite).
-Conformance status against that suite:
+All 35 tests in the
+[w3c-ccg/did-resolution-mocha-test-suite](https://github.com/w3c-ccg/did-resolution-mocha-test-suite)
+pass against this implementation.
 
 | Requirement | Status |
 |---|---|
@@ -243,6 +243,7 @@ Conformance status against that suite:
 | `Content-Type` header matches `didResolutionMetadata.contentType` | ✅ |
 | RFC 9457 error objects with W3C DID namespace URIs | ✅ |
 | `INVALID_DID` + 400 for malformed DID input | ✅ |
+| `NOT_FOUND` + 404 | ✅ |
 | `METHOD_NOT_SUPPORTED` + 501 | ✅ |
 | `REPRESENTATION_NOT_SUPPORTED` + 406 | ✅ |
 | Deactivated DID → 410 + null document | ✅ (requires a method that supports deactivation) |
