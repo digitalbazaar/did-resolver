@@ -92,7 +92,8 @@ describe('GET /1.0/identifiers/:did — resolution', () => {
         {headers: {Accept: 'application/did-resolution'}});
       assert.equal(res.status, 501);
       const body = await res.json();
-      assert.equal(body.didResolutionMetadata.error, 'methodNotSupported');
+      assert.equal(body.didResolutionMetadata.error.type,
+        'https://www.w3.org/ns/did#METHOD_NOT_SUPPORTED');
       assert.equal(body.didDocument, null);
     });
 

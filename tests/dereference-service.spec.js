@@ -133,7 +133,8 @@ describe('Service endpoint dereferencing — ?service= param', () => {
     });
     assert.equal(res.status, 404);
     const body = await res.json();
-    assert.equal(body.dereferencingMetadata.error, 'notFound');
+    assert.equal(body.dereferencingMetadata.error.type,
+      'https://www.w3.org/ns/did#NOT_FOUND');
     assert.equal(body.contentStream, null);
   });
 });
