@@ -58,59 +58,52 @@ function interceptMockDid() {
 }
 
 describe('Service endpoint dereferencing — ?service= param', () => {
-  it('returns the service endpoint URL as text/uri-list by default',
+  it('returns the service endpoint URL as application/did by default',
     async () => {
       interceptMockDid();
       const didUrl = encodeURIComponent(`${MOCK_DID_WEB}?service=files`);
       const res = await fetch(`${baseUrl}/1.0/identifiers/${didUrl}`);
       assert.equal(res.status, 200);
-      assert.ok(res.headers.get('content-type').includes('text/uri-list'),
-        'Content-Type is text/uri-list');
-      const body = await res.text();
-      assert.equal(body, SERVICE_ENDPOINT, 'body is the endpoint URL');
+      assert.ok(res.headers.get('content-type').includes('application/did'),
+        'Content-Type is application/did');
+      const body = await res.json();
+      assert.equal(body.serviceEndpoint, SERVICE_ENDPOINT,
+        'body contains the endpoint URL');
     });
 
-  it('redirects with HTTP 303 when Accept is text/uri-list', async () => {
+  it('returns 406 when Accept is text/uri-list', async () => {
     interceptMockDid();
     const didUrl = encodeURIComponent(`${MOCK_DID_WEB}?service=files`);
     const res = await fetch(`${baseUrl}/1.0/identifiers/${didUrl}`, {
-      redirect: 'manual',
       headers: {Accept: 'text/uri-list'}
     });
-    assert.equal(res.status, 303, 'HTTP 303 redirect');
-    assert.equal(res.headers.get('location'), SERVICE_ENDPOINT,
-      'Location header is service endpoint URL');
+    assert.equal(res.status, 406, 'text/uri-list is no longer supported');
   });
 
-  it('returns full dereferencing result with service endpoint', async () => {
+  it('returns full resolution result with service endpoint', async () => {
     interceptMockDid();
     const didUrl = encodeURIComponent(`${MOCK_DID_WEB}?service=files`);
     const res = await fetch(`${baseUrl}/1.0/identifiers/${didUrl}`, {
-      headers: {Accept: 'application/did-url-dereferencing'}
+      headers: {Accept: 'application/did-resolution'}
     });
     assert.equal(res.status, 200);
     assert.ok(res.headers.get('content-type').includes(
-      'application/did-url-dereferencing'));
+      'application/did-resolution'));
     const body = await res.json();
-    assert.ok(body.dereferencingMetadata, 'dereferencingMetadata present');
-    assert.ok(body.contentStream, 'contentStream present');
-    assert.equal(body.contentStream.url, SERVICE_ENDPOINT,
-      'contentStream contains endpoint URL');
+    assert.ok(body.didResolutionMetadata, 'didResolutionMetadata present');
+    assert.equal(body.didResolutionMetadata.serviceEndpoint, SERVICE_ENDPOINT,
+      'serviceEndpoint in metadata');
   });
 
-  it('appends ?relativeRef= to the service endpoint URL', async () => {
+  it('ignores relativeRef param (not supported)', async () => {
     interceptMockDid();
     const didUrl = encodeURIComponent(
       `${MOCK_DID_WEB}?service=files&relativeRef=/docs/spec.html`);
-    const res = await fetch(`${baseUrl}/1.0/identifiers/${didUrl}`, {
-      redirect: 'manual',
-      headers: {Accept: 'text/uri-list'}
-    });
-    assert.equal(res.status, 303);
-    assert.equal(
-      res.headers.get('location'),
-      `${SERVICE_ENDPOINT}/docs/spec.html`,
-      'relativeRef appended to endpoint URL');
+    const res = await fetch(`${baseUrl}/1.0/identifiers/${didUrl}`);
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.serviceEndpoint, SERVICE_ENDPOINT,
+      'returns base endpoint URL without relativeRef appended');
   });
 
   it('returns 404 when service ID is not found in DID document', async () => {
@@ -124,17 +117,17 @@ describe('Service endpoint dereferencing — ?service= param', () => {
       'error message names the missing service');
   });
 
-  it('returns 404 with dereferencing body when service not found', async () => {
+  it('returns 404 with resolution body when service not found', async () => {
     interceptMockDid();
     const didUrl = encodeURIComponent(
       `${MOCK_DID_WEB}?service=nonexistent`);
     const res = await fetch(`${baseUrl}/1.0/identifiers/${didUrl}`, {
-      headers: {Accept: 'application/did-url-dereferencing'}
+      headers: {Accept: 'application/did-resolution'}
     });
     assert.equal(res.status, 404);
     const body = await res.json();
-    assert.equal(body.dereferencingMetadata.error.type,
+    assert.equal(body.didResolutionMetadata.error.type,
       'https://www.w3.org/ns/did#NOT_FOUND');
-    assert.equal(body.contentStream, null);
+    assert.equal(body.didDocument, null);
   });
 });
