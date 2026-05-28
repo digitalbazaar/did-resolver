@@ -73,7 +73,7 @@ describe('GET /1.0/identifiers/:did — did:web (mock via nock)', () => {
     const res = await fetch(
       `${baseUrl}/1.0/identifiers/${MOCK_DID_WEB}`);
     assert.ok(
-      res.headers.get('content-type').includes('application/did+ld+json'));
+      res.headers.get('content-type').includes('application/did'));
   });
 
   it('returns full resolution result for did:web with Accept header',

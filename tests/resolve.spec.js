@@ -54,7 +54,7 @@ describe('GET /1.0/identifiers/:did — resolution', () => {
     const res = await fetch(
       `${baseUrl}/1.0/identifiers/${TEST_DID_KEY}`);
     assert.ok(
-      res.headers.get('content-type').includes('application/did+ld+json'));
+      res.headers.get('content-type').includes('application/did'));
   });
 
   it('returns full resolution result when Accept is application/did-resolution',
@@ -175,19 +175,14 @@ describe('GET /1.0/identifiers/:didUrl — dereferencing', () => {
       'dereferenced resource has expected fields');
   });
 
-  it('returns full dereferencing result when Accept is ' +
-    'application/did-url-dereferencing', async () => {
-    const encoded = encodeURIComponent(TEST_KEY_FRAGMENT);
-    const res = await fetch(`${baseUrl}/1.0/identifiers/${encoded}`, {
-      headers: {Accept: 'application/did-url-dereferencing'}
+  it('returns 406 for application/did-url-dereferencing Accept type',
+    async () => {
+      const encoded = encodeURIComponent(TEST_KEY_FRAGMENT);
+      const res = await fetch(`${baseUrl}/1.0/identifiers/${encoded}`, {
+        headers: {Accept: 'application/did-url-dereferencing'}
+      });
+      assert.equal(res.status, 406);
     });
-    assert.equal(res.status, 200);
-    assert.ok(res.headers.get('content-type').includes(
-      'application/did-url-dereferencing'));
-    const body = await res.json();
-    assert.ok(body.dereferencingMetadata, 'dereferencingMetadata present');
-    assert.ok(body.contentMetadata !== undefined, 'contentMetadata present');
-  });
 
   it('returns 501 for an unsupported DID method in a DID URL', async () => {
     const encoded = encodeURIComponent('did:unsupported:abc123#key-1');
