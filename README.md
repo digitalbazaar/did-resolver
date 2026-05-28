@@ -83,6 +83,38 @@ Per the [DID Resolution spec](https://w3c.github.io/did-resolution/#bindings-htt
 | Internal resolver error | `500 Internal Server Error` |
 | DID method not supported | `501 Not Implemented` |
 
+### Error Format
+
+When `Accept: application/did-resolution` is requested, error responses are
+conformant resolution results with an RFC 9457-style error object in
+`didResolutionMetadata`:
+
+```json
+{
+  "@context": "https://w3id.org/did-resolution/v1",
+  "didDocument": null,
+  "didDocumentMetadata": {},
+  "didResolutionMetadata": {
+    "error": {
+      "type": "https://www.w3.org/ns/did#METHOD_NOT_SUPPORTED"
+    }
+  }
+}
+```
+
+Error type URIs follow the W3C DID namespace:
+`https://www.w3.org/ns/did#INVALID_DID`, `#NOT_FOUND`, `#METHOD_NOT_SUPPORTED`,
+`#REPRESENTATION_NOT_SUPPORTED`, `#INTERNAL_ERROR`, etc.
+
+### Deactivated DIDs
+
+If a resolved DID document contains `"deactivated": true`, the server returns
+`410 Gone` with a null `didDocument` and `"deactivated": true` in
+`didDocumentMetadata`. Neither `did:key` nor `did:web` support deactivation
+(both are static/derived methods with no registry). Ledger-based methods such
+as `did:veres-one` or `did:ion` do — register such a driver to exercise this
+path.
+
 ### Supported DID Methods
 
 | Method | Description |
@@ -196,10 +228,32 @@ npm test       # Run test suite
 npm run lint   # Lint with @digitalbazaar/eslint-config
 ```
 
+## Spec Conformance
+
+This implementation targets the
+[w3c-ccg/did-resolution-mocha-test-suite](https://github.com/w3c-ccg/did-resolution-mocha-test-suite).
+Conformance status against that suite:
+
+| Requirement | Status |
+|---|---|
+| `GET /1.0/identifiers/{did}` binding | ✅ |
+| `POST /1.0/identifiers/{did}` binding | ✅ |
+| Resolution result shape (`didDocument`, `didResolutionMetadata`, `didDocumentMetadata`) | ✅ |
+| `didResolutionMetadata.contentType` present on success | ✅ |
+| `Content-Type` header matches `didResolutionMetadata.contentType` | ✅ |
+| RFC 9457 error objects with W3C DID namespace URIs | ✅ |
+| `INVALID_DID` + 400 for malformed DID input | ✅ |
+| `METHOD_NOT_SUPPORTED` + 501 | ✅ |
+| `REPRESENTATION_NOT_SUPPORTED` + 406 | ✅ |
+| Deactivated DID → 410 + null document | ✅ (requires a method that supports deactivation) |
+| 303 redirect with empty body for `text/uri-list` | ✅ |
+| DID URL dereferencing result shape | ✅ |
+
 ## Spec References
 
 - [W3C DID Resolution](https://w3c.github.io/did-resolution/)
 - [HTTPS Binding](https://w3c.github.io/did-resolution/#bindings-https)
+- [DID Resolution Mocha Test Suite](https://github.com/w3c-ccg/did-resolution-mocha-test-suite)
 - [@digitalbazaar/did-io](https://github.com/digitalbazaar/did-io)
 - [Danube Tech Universal Resolver](https://github.com/decentralized-identity/universal-resolver) (reference implementation)
 
