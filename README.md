@@ -27,7 +27,7 @@ Client                        did-resolver                     did-io
   |                               |                               |-- driver lookup
   |                               |                               |-- fetch/derive doc
   |                               |<-- DID Document --------------|
-  |<-- 200 application/did+ld+json|
+  |<-- 200 application/did ------|
 ```
 
 ### Endpoints
@@ -46,7 +46,7 @@ POST /1.0/identifiers/{did}
 
 | Accept Header | Response |
 |---|---|
-| `application/did+ld+json` | DID Document only |
+| `application/did` | DID Document only |
 | `application/did-resolution` | Full result: document + resolution metadata + document metadata |
 | _(default)_ | DID Document only |
 
@@ -58,15 +58,17 @@ GET /1.0/identifiers/{did-url}
 
 A DID URL extends a DID with a path, query, or fragment:
 - `did:key:z6Mk...#key-1` → returns a specific verification method
-- `did:web:example.com?service=files` → HTTP 303 redirect to the service endpoint URL
-- `did:web:example.com?service=files&relativeRef=/path` → redirect with path appended
+
+Service endpoint dereferencing (`?service=`) is intentionally not supported:
+resolving caller-supplied endpoints would turn the server into an outbound
+HTTP request engine (SSRF / DDoS amplification surface). Read the service
+endpoint from the resolved DID document directly instead.
 
 **Response formats** (controlled by `Accept` header):
 
 | Accept Header | Response |
 |---|---|
-| `application/did-url-dereferencing` | Full result: content + dereferencing metadata |
-| `text/uri-list` | HTTP 303 redirect to the resource URL |
+| `application/did-resolution` | Full result: content + dereferencing metadata |
 | _(default)_ | The dereferenced resource directly |
 
 ### HTTP Status Codes
@@ -176,10 +178,6 @@ curl -H "Accept: application/did-resolution" \
 
 # Dereference a DID URL fragment (specific verification method)
 curl http://localhost:8080/1.0/identifiers/did:key:z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH%23z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH
-
-# Dereference a service endpoint (HTTP 303 redirect)
-curl -L -H "Accept: text/uri-list" \
-  http://localhost:8080/1.0/identifiers/did:web:example.com%3Fservice%3Dfiles
 ```
 
 ## Configuration
@@ -247,7 +245,6 @@ pass against this implementation.
 | `METHOD_NOT_SUPPORTED` + 501 | ✅ |
 | `REPRESENTATION_NOT_SUPPORTED` + 406 | ✅ |
 | Deactivated DID → 410 + null document | ✅ (requires a method that supports deactivation) |
-| 303 redirect with empty body for `text/uri-list` | ✅ |
 | DID URL dereferencing result shape | ✅ |
 
 ## Spec References
