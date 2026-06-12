@@ -7,7 +7,7 @@ export default [
   ...config,
   {
     // Mocha test globals
-    files: ['tests/**/*.js'],
+    files: ['test/**/*.js'],
     languageOptions: {
       globals: {
         before: 'readonly',

@@ -7,7 +7,7 @@
   "main": "lib/index.js",
   "scripts": {
     "start": "node lib/index.js",
-    "test": "mocha --timeout 10000 'tests/**/*.spec.js'",
+    "test": "mocha --timeout 10000 'test/mocha/*.js'",
     "lint": "eslint ."
   },
   "dependencies": {
