@@ -2,7 +2,7 @@
  * Copyright (c) 2026 Digital Bazaar, Inc.
  */
 import {strict as assert} from 'node:assert';
-import {createServer} from '../lib/server.js';
+import {createServer} from '../../lib/server.js';
 
 // A known valid did:key (Ed25519 2020, z6Mk prefix) for testing.
 // Source: https://github.com/digitalbazaar/did-method-key README
