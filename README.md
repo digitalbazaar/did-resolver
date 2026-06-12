@@ -61,14 +61,16 @@ A DID URL extends a DID with a path, query, or fragment:
 
 Service endpoint dereferencing (`?service=`) is intentionally not supported:
 resolving caller-supplied endpoints would turn the server into an outbound
-HTTP request engine (SSRF / DDoS amplification surface). Read the service
+HTTP request engine (SSRF / DDoS amplification surface). Requests including
+`?service=` are rejected with `501 Not Implemented`. Read the service
 endpoint from the resolved DID document directly instead.
 
 **Response formats** (controlled by `Accept` header):
 
 | Accept Header | Response |
 |---|---|
-| `application/did-resolution` | Full result: content + dereferencing metadata |
+| `application/did-url-dereferencing` | Dereferencing result: `dereferencingMetadata` + `contentStream` + `contentMetadata` |
+| `application/did-resolution` | Full result: content + resolution metadata |
 | _(default)_ | The dereferenced resource directly |
 
 ### HTTP Status Codes

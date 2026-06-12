@@ -175,12 +175,27 @@ describe('GET /1.0/identifiers/:didUrl — dereferencing', () => {
       'dereferenced resource has expected fields');
   });
 
-  it('returns 406 for application/did-url-dereferencing Accept type',
+  it('returns a dereferencing result for application/did-url-dereferencing',
     async () => {
       const encoded = encodeURIComponent(TEST_KEY_FRAGMENT);
       const res = await fetch(`${baseUrl}/1.0/identifiers/${encoded}`, {
         headers: {Accept: 'application/did-url-dereferencing'}
       });
+      assert.equal(res.status, 200);
+      const body = await res.json();
+      assert.ok(body.dereferencingMetadata, 'dereferencingMetadata present');
+      assert.ok(body.contentStream, 'contentStream present');
+      assert.ok(
+        body.contentMetadata !== undefined, 'contentMetadata present');
+      assert.ok(res.headers.get('content-type').includes(
+        body.dereferencingMetadata.contentType));
+    });
+
+  it('returns 406 for application/did-url-dereferencing on plain resolution',
+    async () => {
+      const res = await fetch(
+        `${baseUrl}/1.0/identifiers/${TEST_DID_KEY}`,
+        {headers: {Accept: 'application/did-url-dereferencing'}});
       assert.equal(res.status, 406);
     });
 
@@ -200,4 +215,59 @@ describe('GET /1.0/identifiers/:didUrl — dereferencing', () => {
       const body = await res.json();
       assert.equal(body.error, 'representationNotSupported');
     });
+
+  it('didResolutionMetadata.contentType matches Content-Type header',
+    async () => {
+      const encoded = encodeURIComponent(TEST_KEY_FRAGMENT);
+      const res = await fetch(`${baseUrl}/1.0/identifiers/${encoded}`, {
+        headers: {Accept: 'application/did-resolution'}
+      });
+      assert.equal(res.status, 200);
+      const body = await res.json();
+      assert.ok(res.headers.get('content-type').includes(
+        body.didResolutionMetadata.contentType));
+    });
+});
+
+describe('Service endpoint dereferencing — intentionally unsupported', () => {
+  it('returns 501 for an unencoded ?service= query', async () => {
+    const res = await fetch(
+      `${baseUrl}/1.0/identifiers/${TEST_DID_KEY}?service=files`);
+    assert.equal(res.status, 501);
+    const body = await res.json();
+    assert.equal(body.error, 'notImplemented');
+  });
+
+  it('returns 501 for a percent-encoded ?service= query', async () => {
+    const encoded = encodeURIComponent(`${TEST_DID_KEY}?service=files`);
+    const res = await fetch(`${baseUrl}/1.0/identifiers/${encoded}`);
+    assert.equal(res.status, 501);
+    const body = await res.json();
+    assert.equal(body.error, 'notImplemented');
+  });
+});
+
+describe('Malformed requests', () => {
+  it('returns JSON 400 for malformed percent-encoding in the path',
+    async () => {
+      const res = await fetch(`${baseUrl}/1.0/identifiers/did:key:z6%zzMk`);
+      assert.equal(res.status, 400);
+      assert.ok(res.headers.get('content-type').includes('application/json'));
+      const body = await res.json();
+      assert.equal(body.error, 'invalidDid');
+    });
+
+  it('returns JSON 400 for a malformed JSON POST body', async () => {
+    const res = await fetch(
+      `${baseUrl}/1.0/identifiers/${TEST_DID_KEY}`,
+      {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: '{not json'
+      });
+    assert.equal(res.status, 400);
+    assert.ok(res.headers.get('content-type').includes('application/json'));
+    const body = await res.json();
+    assert.equal(body.error, 'invalidDid');
+  });
 });
